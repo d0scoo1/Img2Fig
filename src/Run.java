@@ -16,9 +16,6 @@ public class Run {
         //设置参数
         //i2f.setParam(Color.WHITE,20,30);
 
-        //设定按倍数符号尺寸
-        //i2f.setFigureSize(1);
-
         //按参数设置字符
         //i2f.setFigureSize(5,10,10,40,"宋体",Color.BLACK);
 
@@ -26,7 +23,7 @@ public class Run {
          * 首先进行图片读取和裁剪，参数设置要在此之前
          * 返回BufferImage对象用于后面的图片操作
          * **/
-        BufferedImage bi = i2f.img_cut("D:\\MK",Img2Fig.TYPE_IMG_JPEG);
+        BufferedImage bi = i2f.imgCut("D:\\MK",Img2Fig.TYPE_IMG_JPEG);
 
         /**
          * 根据图片获取图片的像素组

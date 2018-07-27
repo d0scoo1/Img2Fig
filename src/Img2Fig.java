@@ -26,7 +26,7 @@ public class Img2Fig {
     //背景容差0-255，建议50-100，数值越大，背景判断越广
     private int bg_alw = 20;   //容差大于255时，则全为背景，如果不想有背景色，可以把bg_alw设置为负数
 
-    //figure判定容差 实际值为  像素组-容差，越大越不精准,一般为像素组一般或60%合适；不能大于一组像素数,若大于像素组数，图片均由字符组成
+    //figure判定容差
     private int fig_alw = 20;
 
     private int width;//处理的图片宽度，可能和实际图片不符，多余部分忽略
@@ -40,7 +40,9 @@ public class Img2Fig {
     private int fig_height = 10;
     private int fig_font = 10; //关联字符大小
     private String font_type = "宋体";
-    private Color paint_color = Color.BLACK;
+    public Color paint_color = Color.BLACK;
+
+    private int image_type = 5;
 
 
     public Img2Fig(){
@@ -51,20 +53,13 @@ public class Img2Fig {
 
         this.bgc = bgc;
         this.bg_alw = bg_alw;
-        this.fig_alw = (this.fig_width * this.fig_height) - fig_alw;
+        this.fig_alw = fig_alw;
      }
 
      public void setParam(Color bgc, int bg_alw, int fig_alw){
          this.bgc = bgc;
          this.bg_alw = bg_alw;
-         this.fig_alw = (this.fig_width * this.fig_height) - fig_alw;
-     }
-
-     public void setFigureSize(int i){
-         this.fig_width = this.fig_width * i;
-         this.fig_height = this.fig_height * i;
-         this.fig_font = this.fig_font * i;
-         this.fig_alw = this.fig_alw*2;
+         this.fig_alw = fig_alw;
      }
 
 
@@ -72,7 +67,7 @@ public class Img2Fig {
         this.fig_width = fig_width;
         this.fig_height = fig_height;
         this.fig_font = fig_font;
-        this.fig_alw = (this.fig_width * this.fig_height) - fig_alw;
+        this.fig_alw =  fig_alw;
         this.font_type = font_type;
         this.paint_color = paint_color;
     }
@@ -82,7 +77,7 @@ public class Img2Fig {
      *
      * @return 返回一个BufferedImage对象
      */
-    public BufferedImage img_cut(String img_path,String img_type) {
+    public BufferedImage imgCut(String img_path,String img_type) {
         img_path = img_path + "."+img_type;
 
        // this.img_type = img_type;
@@ -107,7 +102,22 @@ public class Img2Fig {
         this.width = width - (width % fig_width);
         this.height = height - (height % fig_height);
 
+        this.image_type = bi.getType();
+
         return bi;
+    }
+
+    public BufferedImage imgNotCut(BufferedImage bi) {
+        
+        this.width = bi.getWidth();
+        this.height = bi.getHeight();
+
+        return bi;
+    }
+
+    public void setWH(int width,int height){
+        this.width = width - (width % fig_width);
+        this.height = height - (height % fig_height);
     }
 
     /**
@@ -144,7 +154,6 @@ public class Img2Fig {
                         int[] rgb = new int[3];//临时存储RGB颜色
                         int nowX = i * fig_width + x;
                         int nowY = j * fig_height + y;
-
                         int pixel = bi.getRGB(nowX, nowY); // 下面三行代码将一个数字转换为RGB数字
 
                         rgb[0] = (pixel & 0xff0000) >> 16;
@@ -197,14 +206,16 @@ public class Img2Fig {
         int f_width = width / fig_width;
         int f_height = height / fig_height;
 
-        BufferedImage b = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        BufferedImage b = new BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR);
         Graphics g = b.getGraphics();
 
-        g.fillRect(0, 0, width, height);//填充整个屏幕
+
+      g.fillRect(0, 0, width, height);//填充整个屏幕
 
         g.setColor(paint_color);
 
-        g.setFont(new Font(font_type, Font.LAYOUT_LEFT_TO_RIGHT, fig_font));
+
+       g.setFont(new Font(font_type, Font.LAYOUT_LEFT_TO_RIGHT, fig_font));
 
         for (int i = 0; i < f_width; i++) {
             for (int j = 0; j < f_height; j++) {
@@ -216,7 +227,7 @@ public class Img2Fig {
                     g.drawString(str, i * fig_width, fig_height + j * fig_height);
                 } else {
                     //背景情况
-                    // g.drawString(".", i * fig_width, fig_height + j * fig_height);
+            //         g.drawString(".", i * fig_width, fig_height + j * fig_height);
                 }
             }
         }
