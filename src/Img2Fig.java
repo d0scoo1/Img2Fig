@@ -5,82 +5,107 @@ import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
 
-/**
- * 图片转换为字符组成的图片
- *
- * @author vickey
- * @version 1.0.0
- */
 public class Img2Fig {
-
-   // private String img_path = null;        //图片输入路径
-   // private String img_out_path = null;    //图片输出路径
-  //  private String img_type = null; //图片格式
-
-    public static final String TYPE_IMG_PNG = "PNG";
-    public static final String TYPE_IMG_JPG = "JPG";
-    public static final String TYPE_IMG_JPEG = "JPEG";
 
     private Color bgc = Color.WHITE; //背景色，默认为白色，如果不想填背景色，则选择图片里的比较少见的颜色做背景色，或把容差改为负数
 
     //背景容差0-255，建议50-100，数值越大，背景判断越广
-    private int bg_alw = 20;   //容差大于255时，则全为背景，如果不想有背景色，可以把bg_alw设置为负数
+    private int bg_alw = 0;   //容差大于255时，则全为背景，如果不想有背景色，可以把bg_alw设置为负数
 
     //figure判定容差
-    private int fig_alw = 20;
+    private int fig_alw = 0;
 
-    private int width;//处理的图片宽度，可能和实际图片不符，多余部分忽略
-    private int height; //处理的图片高度，可能和实际图片不符
+    private int imgWidth; //图片实际宽度
+    private int imgHeight;//图片实际高度
 
-    //private int minx = 0;//默认像素开始为0，0
-    //private int miny = 0;
 
     //一个字符的像素大小，默认是X5Y10
     private int fig_width = 5;
     private int fig_height = 10;
-    private int fig_font = 10; //关联字符大小
+    private int font_size = 10; //关联字符大小
     private String font_type = "宋体";
     public Color paint_color = Color.BLACK;
 
     private int image_type = 5;
 
 
+    /**
+     * 默认无背景色模式，不推荐
+     */
     public Img2Fig(){
-
-    }
-
-    public Img2Fig(Color bgc, int bg_alw, int fig_alw) {
-
-        this.bgc = bgc;
-        this.bg_alw = bg_alw;
-        this.fig_alw = fig_alw;
-     }
-
-     public void setParam(Color bgc, int bg_alw, int fig_alw){
-         this.bgc = bgc;
-         this.bg_alw = bg_alw;
-         this.fig_alw = fig_alw;
-     }
-
-
-    public void setFigureSize(int fig_width,int fig_height,int fig_font,int fig_alw,String font_type,Color paint_color){
-        this.fig_width = fig_width;
-        this.fig_height = fig_height;
-        this.fig_font = fig_font;
-        this.fig_alw =  fig_alw;
-        this.font_type = font_type;
-        this.paint_color = paint_color;
+        this.bg_alw = -1;
     }
 
     /**
-     * 图片进行裁剪，（其实只是并未真正裁剪，只是不读其像素点）
      *
+     * @param bgc 背景色
+     * @param bg_alw 背景容差，范围为(0,1)
+     */
+    public Img2Fig(Color bgc, double bg_alw ){
+        this.setBackground(bgc,bg_alw);
+    }
+
+    public Img2Fig(Color bgc, int bg_alw) {
+       this.setBackground(bgc,bg_alw);
+    }
+
+    /**
+     *设置背景参数
+     * @param bgc
+     * @param bg_alw 背景容差，范围为(0,255),若小于0，则无背景，不能大于1，若大于1，则无符合数据，不会生产图片
+     */
+    public void setBackground(Color bgc, int bg_alw) {
+        this.bgc = bgc;
+        if(bg_alw>=255) System.out.println("背景容差过大,请小于255，否则容易导致无符合的非背景像素，bg_alw = "+bg_alw);
+        this.bg_alw = bg_alw;
+    }
+
+    public void setBackground(Color bgc, double bg_alw){
+      this.setBackground(bgc,(int)(bg_alw*255));
+    }
+
+
+    /**
+     * 设置字符大小，容差，fig_alw是相对于像素组而言（fig_width * fig_height）
+     * @param fig_width
+     * @param fig_height
+     * @param fig_alw
+     */
+    public void setFigure(int fig_width, int fig_height, int fig_alw){
+        this.fig_width = fig_width;
+        this.fig_height = fig_height;
+        this.fig_alw = fig_alw;
+    }
+
+    /**
+     *
+     * @param font_type 字体类型
+     * @param font_size 字体大小
+     * @param paint_color 图形颜色，在原色模式中此数据失效
+     */
+    public void setFont(String font_type,int font_size, Color paint_color){
+        this.font_type = font_type;
+        this.font_size = font_size;
+        this.paint_color = paint_color;
+    }
+
+
+    /**
+     * 设置新背景颜色，在原色模式中失效
+     * @param color
+     */
+   public void setNewBackground(Color color){
+        //TODO 设置新背景颜色
+   }
+
+
+    /**
+     * 图片进行裁剪，（其实只是并未真正裁剪，只是不读其像素点）
+     * 会影响图片大小
      * @return 返回一个BufferedImage对象
      */
-    public BufferedImage imgCut(String img_path,String img_type) {
-        img_path = img_path + "."+img_type;
-
-       // this.img_type = img_type;
+    public BufferedImage imgRead(String img_path, String img_type) {
+        img_path = img_path + "." + img_type;
 
         File file = new File(img_path);
         BufferedImage bi = null;
@@ -91,33 +116,24 @@ public class Img2Fig {
             e.printStackTrace();
         }
 
-        //这里默认从X0Y0开始，所以注释掉
-        //int minx = bi.getMinX();
-        //int miny = bi.getMinY();
-
-        int width = bi.getWidth();
-        int height = bi.getHeight();
+        this.imgWidth = bi.getWidth();
+        this.imgHeight = bi.getHeight();
 
         //裁剪出多余的部分
-        this.width = width - (width % fig_width);
-        this.height = height - (height % fig_height);
-
         this.image_type = bi.getType();
 
         return bi;
     }
 
-    public BufferedImage imgNotCut(BufferedImage bi) {
-        
-        this.width = bi.getWidth();
-        this.height = bi.getHeight();
+    /**
+     * 设置图片宽高，这里多是批量处理一组图片，或者视频帧时，使用
+     * @param width
+     * @param height
+     */
+    public void setWH(int width, int height) {
+        this.imgWidth = width;
+        this.imgHeight = height;
 
-        return bi;
-    }
-
-    public void setWH(int width,int height){
-        this.width = width - (width % fig_width);
-        this.height = height - (height % fig_height);
     }
 
     /**
@@ -130,8 +146,8 @@ public class Img2Fig {
         int minx = 0;
         int miny = 0;
 
-        int f_width = width / fig_width;    //分组后，组的宽度
-        int f_height = height / fig_height; //分组后，组的高度
+        int f_width = imgWidth / fig_width;    //分组后，组的宽度
+        int f_height = imgHeight / fig_height; //分组后，组的高度
 
         int img_fig[][] = new int[f_width][f_height]; //记录每个字符信息
 
@@ -188,8 +204,8 @@ public class Img2Fig {
         return img_fig;
     }
 
-    //此处需要优化
-    private int color2Int(int[] rgb){
+    //TODO 颜色->数字，
+    private int color2Int(int[] rgb) {
 
         return (rgb[0] / 10 + (rgb[1] / 10) * 2 + (rgb[2] / 10) * 3);
     }
@@ -197,25 +213,23 @@ public class Img2Fig {
     /**
      * 画图
      *
-     * @param img_fig    用于绘制的数组
+     * @param img_fig 用于绘制的数组
      **/
     public BufferedImage drawByImgFig(int[][] img_fig) {
 
         String[] figure = getFigures();
 
-        int f_width = width / fig_width;
-        int f_height = height / fig_height;
+        int f_width = imgWidth / fig_width;    //分组后，组的宽度
+        int f_height = imgHeight / fig_height; //分组后，组的高度
 
-        BufferedImage b = new BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR);
+        BufferedImage b = new BufferedImage(imgWidth, imgHeight, BufferedImage.TYPE_3BYTE_BGR);
         Graphics g = b.getGraphics();
 
-
-      g.fillRect(0, 0, width, height);//填充整个屏幕
+        g.fillRect(0, 0, imgWidth, imgHeight);//填充整个屏幕
 
         g.setColor(paint_color);
 
-
-       g.setFont(new Font(font_type, Font.LAYOUT_LEFT_TO_RIGHT, fig_font));
+        g.setFont(new Font(font_type, Font.LAYOUT_LEFT_TO_RIGHT, font_size));
 
         for (int i = 0; i < f_width; i++) {
             for (int j = 0; j < f_height; j++) {
@@ -227,7 +241,7 @@ public class Img2Fig {
                     g.drawString(str, i * fig_width, fig_height + j * fig_height);
                 } else {
                     //背景情况
-            //         g.drawString(".", i * fig_width, fig_height + j * fig_height);
+                    //         g.drawString(".", i * fig_width, fig_height + j * fig_height);
                 }
             }
         }
@@ -235,43 +249,7 @@ public class Img2Fig {
     }
 
     /**
-     * 保存图片
-     *
-     * @param bi
-     */
-    public void saveImg(BufferedImage bi,String img_type, String img_out_path) {
-        String out_path = img_out_path +"."+img_type;
-        try {
-            ImageIO.write(bi, img_type, new File(out_path));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * 设置显示的字符集合
-     *
-     * @return
-     */
-    private static String[] getFigures() {
-        String figure[] = new String[36];
-
-        //0-9 : 48-57
-        for (int i = 0; i < 10; i++) {
-            figure[i] = String.valueOf((char) (48 + i));
-        }
-
-        //A-Z : 65-90
-        for (int i = 0; i < 26; i++) {
-            figure[i + 10] = String.valueOf((char) (65 + i));
-        }
-
-        return figure;
-    }
-
-
-    /**
-     * 将图片输出彩色
+     * 原色模式
      *
      * @param bi_old
      * @param bi_new
@@ -284,8 +262,8 @@ public class Img2Fig {
 
         int alw = 20;
 
-        for (int i = 0; i < width; i++) {
-            for (int j = 0; j < height; j++) {
+        for (int i = 0; i < imgWidth; i++) {
+            for (int j = 0; j < imgHeight; j++) {
 
                 int pixel = bi_new.getRGB(i, j); // 下面三行代码将一个数字转换为RGB数字
 
@@ -330,9 +308,7 @@ public class Img2Fig {
      *
      * @param bi_old
      * @param bi_new
-
      * @param img_fig
-
      * @param pen_color
      * @return
      */
@@ -340,8 +316,8 @@ public class Img2Fig {
 
         BufferedImage bi = bi_new;
         WritableRaster rasterDes = bi.getRaster();
-        int f_width = width / fig_width;    //分组后，组的宽度
-        int f_height = height / fig_height; //分组后，组的高度
+        int f_width = imgWidth / fig_width;    //分组后，组的宽度
+        int f_height = imgHeight / fig_height; //分组后，组的高度
 
         int alw = 20;
 
@@ -376,6 +352,107 @@ public class Img2Fig {
             }
         }
         return bi;
+    }
+
+    /**
+     * 如果图片宽高和像素组不是正好整除，则需要对齐，这里并没有写对齐方法，可能存在右侧，下侧白边，可以用裁剪的方法。
+     * @param bi
+     * @return
+     */
+    public BufferedImage getCutImg(BufferedImage bi){
+
+        int w = imgWidth - (imgWidth % fig_width);
+        int h = imgHeight - (imgHeight % fig_height);
+
+        BufferedImage b = new BufferedImage(w,h, BufferedImage.TYPE_3BYTE_BGR);
+
+        for(int x = 0; x < w; x++){
+            for(int y = 0; y < h ; y++ ){
+                b.setRGB(x,y,bi.getRGB(x,y));
+            }
+        }
+        return b;
+    }
+
+
+    /**
+     * 保存图片
+     *
+     * @param bi
+     */
+    public void saveImg(BufferedImage bi, String img_type, String img_out_path) {
+        String out_path = img_out_path + "." + img_type;
+        try {
+            ImageIO.write(bi, img_type, new File(out_path));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 设置显示的字符集合
+     *
+     * @return
+     */
+    private static String[] getFigures() {
+        String figure[] = new String[36];
+
+        //0-9 : 48-57
+        for (int i = 0; i < 10; i++) {
+            figure[i] = String.valueOf((char) (48 + i));
+        }
+
+        //A-Z : 65-90
+        for (int i = 0; i < 26; i++) {
+            figure[i + 10] = String.valueOf((char) (65 + i));
+        }
+
+        return figure;
+    }
+
+
+    public Color getBgc() {
+        return bgc;
+    }
+
+    public int getBg_alw() {
+        return bg_alw;
+    }
+
+    public int getFig_alw() {
+        return fig_alw;
+    }
+
+    public int getFig_width() {
+        return fig_width;
+    }
+
+    public int getFig_height() {
+        return fig_height;
+    }
+
+    public int getFont_size() {
+        return font_size;
+    }
+
+    public String getFont_type() {
+        return font_type;
+    }
+
+    public Color getPaint_color() {
+        return paint_color;
+    }
+
+    public int getImage_type() {
+        return image_type;
+    }
+
+    public int getImgWidth() {
+        return imgWidth;
+    }
+
+    public int getImgHeight() {
+        return imgHeight;
     }
 
 }
