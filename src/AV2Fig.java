@@ -1,4 +1,4 @@
-import org.bytedeco.javacv.*;
+﻿import org.bytedeco.javacv.*;
 import org.bytedeco.javacv.Frame;
 
 import java.awt.*;
@@ -98,7 +98,7 @@ public class AV2Fig {
 
                 BufferedImage bi = converter.getBufferedImage(f);
                 BufferedImage new_bi = i2f.drawByImgFig(i2f.getImgFig(bi));
-
+                //new_bi = i2f.paintImgFigureColors(bi,new_bi,Color.BLACK );
                 Frame f_n = converter.getFrame(new_bi);
 
                 f_n.timestamp = f.timestamp;
