@@ -1,9 +1,11 @@
-﻿import org.bytedeco.javacv.*;
+import org.bytedeco.javacv.*;
 import org.bytedeco.javacv.Frame;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -98,7 +100,8 @@ public class AV2Fig {
 
                 BufferedImage bi = converter.getBufferedImage(f);
                 BufferedImage new_bi = i2f.drawByImgFig(i2f.getImgFig(bi));
-                //new_bi = i2f.paintImgFigureColors(bi,new_bi,Color.BLACK );
+
+            //    new_bi = i2f.paintImgFigureColors(bi,new_bi,Color.BLACK );
                 Frame f_n = converter.getFrame(new_bi);
 
                 f_n.timestamp = f.timestamp;
@@ -116,7 +119,6 @@ public class AV2Fig {
         recorder.release();
         grabber.stop();
         grabber.release();
-
 
     }
 
